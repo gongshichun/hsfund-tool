@@ -17,47 +17,71 @@ logging.basicConfig(level=logging.INFO,
                     filemode='a')
 '''
 
-logger1 = logging.getLogger('my_logger1')
-logger1.setLevel(logging.INFO)
 
-logger2 = logging.getLogger('my_logger2')
-logger2.setLevel(logging.WARNING)
+class LoggingFactory(object):
+    INSTANCE = None
 
-logger3 = logging.getLogger('my_logger3')
-logger3.setLevel(logging.ERROR)
+    def __init__(self):
+        pass
 
-# 路径
-log_path = configuration.log_path
-if not os.path.exists(log_path):
-    os.makedirs(log_path)
+    def __new__(cls, *args, **kwargs):
+        if not cls.INSTANCE:
+            __logger_info = logging.getLogger('logger_info')
+            __logger_info.setLevel(logging.INFO)
 
-# 创建一个handler，用于写入日志文件
-info = logging.FileHandler(log_path + '\\tool-info.log')
+            __logger_warning = logging.getLogger('logger_warning')
+            __logger_warning.setLevel(logging.WARNING)
 
-# 创建一个handler，用于写入日志文件
-warning = logging.FileHandler(log_path + '\\tool-warning.log')
+            __logger_error = logging.getLogger('logger_error')
+            __logger_error.setLevel(logging.ERROR)
 
-# 创建一个handler，用于写入日志文件
-error = logging.FileHandler(log_path + '\\tool-error.log')
+            # 路径
+            __log_path = configuration.log_path
+            if not os.path.exists(__log_path):
+                os.makedirs(__log_path)
 
-# 再创建一个handler，用于输出到控制台
-console = logging.StreamHandler()
+            # 创建一个handler，用于写入日志文件
+            __info_handler = logging.FileHandler(__log_path + '\\tool-info.log')
 
-# 定义handler的输出格式formatter
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-info.setFormatter(formatter)
-warning.setFormatter(formatter)
-error.setFormatter(formatter)
+            # 创建一个handler，用于写入日志文件
+            __warning_handler = logging.FileHandler(__log_path + '\\tool-warning.log')
 
-# 给logger添加handler
-logger1.addHandler(info)
-logger1.addHandler(console)
+            # 创建一个handler，用于写入日志文件
+            __error_handler = logging.FileHandler(__log_path + '\\tool-error.log')
 
-logger2.addHandler(warning)
-logger2.addHandler(console)
+            # 再创建一个handler，用于输出到控制台
+            __console = logging.StreamHandler()
 
-logger3.addHandler(error)
-logger3.addHandler(console)
+            # 定义handler的输出格式formatter
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            __info_handler.setFormatter(formatter)
+            __warning_handler.setFormatter(formatter)
+            __error_handler.setFormatter(formatter)
+
+            # 给logger添加handler
+            __logger_info.addHandler(__info_handler)
+            __logger_info.addHandler(__console)
+
+            __logger_warning.addHandler(__warning_handler)
+            __logger_warning.addHandler(__console)
+
+            __logger_error.addHandler(__error_handler)
+            __logger_error.addHandler(__console)
+
+            cls.__logger_info = __logger_info
+            cls.__logger_warning = __logger_warning
+            cls.__logger_error = __logger_error
+            cls.INSTANCE = super(LoggingFactory, cls).__new__(cls, *args, **kwargs)
+        return cls.INSTANCE
+
+    def get_logger_info(self):
+        return self.__logger_info
+
+    def get_logger_warning(self):
+        return self.__logger_warning
+
+    def get_logger_error(self):
+        return self.__logger_error
 
 
 def debug(message):
@@ -65,12 +89,12 @@ def debug(message):
 
 
 def info(message):
-    logger1.info(message)
+    LoggingFactory().get_logger_info().info(message)
 
 
 def warning(message):
-    logger2.warning(message)
+    LoggingFactory().get_logger_warning().warning(message)
 
 
 def error(message):
-    logger3.error(message)
+    LoggingFactory().get_logger_error().error(message)

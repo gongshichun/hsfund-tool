@@ -5,14 +5,14 @@
 交易系统资产单元份额计算工具
 '''
 
-from util.data_db_util import query_data
-from util.message_util import insert_message, query_msg_queue_sqe
+from util.db_util import get_engine, query_asset_data, insert_message, query_msg_queue_sqe
 from util.logging_util import info, error
 from config.configuration import *
 import time
 from apscheduler.schedulers.blocking import BlockingScheduler
 from pandas.io.excel import ExcelWriter
 import sys
+import os
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -41,22 +41,22 @@ def send_message(extend_context):
     data = dict(VC_MSG_TYPE=configuration.message_type_mail, VC_MSG_TITLE=configuration.message_title,
                 VC_MSG_CONTENT=configuration.message_context + extend_context,
                 VC_MSG_TARGET=configuration.mail_list,
-                I_ID=query_msg_queue_sqe(),
+                I_ID=query_msg_queue_sqe(message_engine),
                 VC_SEND_SRC=configuration.message_src)
-    insert_message(data)
+    insert_message(message_engine, data)
 
     # 发送短信通知
     data = dict(VC_MSG_TYPE=configuration.message_type_sms, VC_MSG_TITLE=configuration.message_title,
                 VC_MSG_CONTENT=configuration.message_context + extend_context,
-                VC_MSG_TARGET=configuration.sms_list, I_ID=query_msg_queue_sqe(),
+                VC_MSG_TARGET=configuration.sms_list, I_ID=query_msg_queue_sqe(message_engine),
                 VC_SEND_SRC=configuration.message_src)
-    insert_message(data)
+    insert_message(message_engine, data)
 
 
 # 计算
 def calc_asset():
     # 查询
-    df = query_data(configuration.sql, configuration.sql_parameter)
+    df = query_asset_data(data_engine, configuration.sql, configuration.sql_parameter)
 
     # 写入Excel中
     if not df.empty:
@@ -86,8 +86,33 @@ def doscheduler():
     info('Calc Asset Finish! Cost %ds' % (end - start))
 
 
+# oracle环境变量
+def oracle_env():
+    os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
+    '''
+    os.environ['ORACLE_HOME'] = 'd:\\dev\\instantclient_11_2\\'
+    os.environ['TNS_ADMIN'] = 'd:\\dev\\instantclient_11_2\\'
+    os.environ['PATH'] = os.environ['PATH'] + ';d:\\dev\\instantclient_11_2\\'
+    os.environ['NLS_LANG'] = NLSLang
+    '''
+
+
+# engine manage
+def engine_manage():
+    global data_engine
+    global message_engine
+
+    data_engine = get_engine(url=configuration.data_db_url, echo=False)
+    message_engine = get_engine(url=configuration.message_db_url, echo=False)
+
+
 # 主方法
 if __name__ == '__main__':
+    # 设置oracle环境变量
+    oracle_env()
+
+    # 数据库引擎
+    engine_manage()
 
     # 启动Scheduler
     scheduler = BlockingScheduler()
