@@ -111,3 +111,8 @@ class configuration:
 
     # 日志路径
     log_path = 'D:\\log'
+
+    # 定时执行
+    day = '*'
+    hour = '23'
+    minute = '0'

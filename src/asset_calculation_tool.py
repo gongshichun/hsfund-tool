@@ -114,12 +114,17 @@ if __name__ == '__main__':
     # 数据库引擎
     engine_manage()
 
-    # 启动Scheduler
-    scheduler = BlockingScheduler()
-    # day, day_of_week, hour, minute, second等参数
-    scheduler.add_job(doscheduler, 'cron', hour='18', day="*")
-    try:
-        scheduler.start()
-    except (KeyboardInterrupt, SystemExit, Exception), e:
-        # 记录异常日志
-        error(e)
+    # 手动执行
+    if sys.argv and sys.argv[1] == 'manual':
+        doscheduler()
+    else:
+        # 启动Scheduler
+        scheduler = BlockingScheduler()
+        # day, day_of_week, hour, minute, second等参数
+        scheduler.add_job(doscheduler, 'cron', minute=configuration.minute, hour=configuration.hour,
+                          day=configuration.day)
+        try:
+            scheduler.start()
+        except (KeyboardInterrupt, SystemExit, Exception), e:
+            # 记录异常日志
+            error(e)
